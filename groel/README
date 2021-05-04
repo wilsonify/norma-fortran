@@ -1,0 +1,122 @@
+
+NORMA normal mode fiting of crystal structures into EM densities using URO and NMA
+----------------------------------------------------------------------------------
+
+Karsten Suhre <mailto:karsten.suhre@igs.cnrs-mrs.fr> , Wed Oct 19 2005
+
+
+This directory contains :
+
+* The GroEl EM density map in NEWEZD format 
+
+  GroEl.ezd
+
+  REF: De Carlo S, El-Bez C, Alvarez-Rua C, Borge J, Dubochet J.,
+       Cryo-negative staining reduces electron-beam sensitivity of vitrified biological particles.,
+       J. Struct. Biol. 2002; 138:216-226.
+
+
+* The initial model, open conformation, prepositioned into the EM map:
+
+  1aonA.pdb (open form)
+
+  REF: Ranson NA, Farr GW, Roseman AM, Gowen B, Fenton WA, Horwich AL, Saibil HR.,
+       ATP-bound states of GroEL captured by cryo-electron microscopy.,
+       Cell. 2001; 107:869-879.
+
+
+  Aa.1SX3.pdb (closed form)
+
+  REF: Chaudhry C, Horwich AL, Brunger AT, Adams PD.,
+       Exploring the structural dynamics of the E.coli chaperonin GroEL using 
+       translation-libration-screw crystallographic refinement of intermediate states.,
+       J. Mol. Biol. 2004; 342:229-245.
+
+
+* The symmetry file for URO in two formats and the viewing position for O (see URO documentation)
+  sym
+  gs.sym
+  symlist
+  gs.real
+
+
+* A shell script to call URO from NORMA via the script func.sh
+
+  go.URO.minimize
+
+
+* A shell script that computes the function to minimize - it will be called by NORMA.f
+  and read a file func.in as input; it should output a file func.out containing value
+  of the function to be minimized (Q*1000) 
+
+  func.sh
+  func.in  ( this file will be overwritten - it is only provided for testing purposes)
+
+
+* To setup the case GroEl case, do the following:
+
+  # setup URO and move files to ./d
+  csh $URO/setup
+  mv sym gs.sym gs.real symlist GroEl.ezd 1aonA.pdb Aa.1SX3.pdb ./d
+
+  # test URO by running func.sh by hand (this first run may take a while since
+  # the normal modes will have to be calculated)
+  # Don`t forget to set the PATH to NMA and NORMA !
+  sh ./func.sh
+
+
+*  Check file func.log. If all works correctly, the following files will have been generated: 
+
+  func.log          # func.sh output
+  pdbmat.log        # NMA pdbmat log file
+  diagrtb.log       # NMA diagrtb log file
+  proj_modes.log    # NMA proj_modes log file
+
+  1aonA.eigenfacs          # the normal modes in ASCII format
+  1aonA.proj_modes_bin.IO  # the normal modes in binary format (will be regenerated if deleted)
+
+  func.out          # 1000*Q ; should be something close to  32661  in this first example
+
+  ./d/1aonA.NMApert.pdb    # the normal mode perturbed PDB file
+
+  ./RUN.minimize    # URO files (logs/results)
+
+
+
+* Go to ./RUN.minimize and run O from here - check if all looks correct.
+
+  cd ./RUN.minimize
+  xterm -e ono &      # hit RETURN a number of times, then type "@ono" to load the map
+
+
+
+* Now it is time to run NORMA. Adapt the parameter file NORMA.inp, e.g for a fast one-modal fit use
+
+&PARAM
+ NDIM    =           1,
+ DY      =    200.0000,
+ NITER   =          50,
+ TEMPTR  =     50.0000,
+ NANNEAL =           0,
+ NROUND  =           1,
+/
+
+
+* To compute an animated PDB file for a fit modify line= in gen_pert.sh 
+  based on the final solution proposed by NORMA, 
+  e.g. for monitor=  21516.000000, p=  7    575.000000
+  type:
+
+    ./gen_pert.sh 7 575.
+
+
+  This will yield a file named anim.pdb that can be viewed as animation using VMD:
+
+    vmd anim.pdb
+
+
+see also :
+----------
+
+http://www.igs.cnrs-mrs.fr/elnemo/NORMA/
+

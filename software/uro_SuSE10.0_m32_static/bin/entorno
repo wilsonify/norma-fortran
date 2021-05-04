@@ -1,0 +1,18 @@
+#!/bin/csh -f
+# entorno ************************************
+   if(-e e/stfing.exe) then
+setenv UROS $cwd/e
+   else
+setenv UROS $URO/$BIN
+   endif
+   if(-e e/uro.exe) then
+setenv UROX $cwd/e
+   else
+setenv UROX $URO/$BIN
+   endif
+set n="0"
+   while (-e $cwd/temp_$n)
+set n=`expr $n + 1`
+   end
+setenv UROF $cwd/temp_$n
+mkdir $UROF

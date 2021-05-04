@@ -1,0 +1,56 @@
+
+NORMA normal mode fiting of crystal structures into EM densities using URO and NMA
+----------------------------------------------------------------------------------
+
+Karsten Suhre <mailto:karsten.suhre@igs.cnrs-mrs.fr> , Wed Oct 20 2005
+
+
+This directory contains :
+
+* The CaATPase EM density map in NEWEZD format 
+
+  dtg8.ezd
+
+  REF: Hinsen K, Reuter N, Navaza J, Stokes DL, Lacapere JJ.,
+       Normal mode-based fitting of atomic structure into electron density maps:
+       application to sarcoplasmic reticulum Ca-ATPase.,
+       Biophys J. 2005; 88:818-827.
+
+  NOTE: This dataset has been kindly made available for use within the educational context
+        of NORMA only. This dataset is NOT in the public domain.
+        For further copyright details, please contact :
+
+          Jean-Jacques LACAPERE <Jean-Jacques.Lacapere@bichat.inserm.fr>
+          INSERM U.683
+          Faculte de Medecine Xavier Bichat
+          16 rue Henri Huchard, BP 416
+          75870 PARIS  18
+          Tel. (33) 01 44 85 61 36
+          Fax (33) 01 42 28 87 65
+
+
+* The initial model, open conformation, prepositioned into the EM map:
+
+  1eul.moved.pdb
+
+  REF: Toyoshima, C., Nakasako, M., Nomura, H., Ogawa, H.,
+       Crystal Structure of the Calcium Pump of Sarcoplasmic Reticulum at 2.6 A Resolution.
+       Nature 405 pp. 647 (2000)
+
+
+* The symmetry file for URO in two formats and the viewing position for O (see URO documentation)
+
+  sym
+  gs.real
+  gs.sym
+  symlist
+  mv symlist sym gs.sym gs.real dtg8.ezd 1eul.moved.pdb ./d
+
+
+
+
+see also :
+----------
+
+http://www.igs.cnrs-mrs.fr/elnemo/NORMA/
+

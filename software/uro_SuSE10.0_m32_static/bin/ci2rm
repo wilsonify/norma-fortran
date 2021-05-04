@@ -1,0 +1,22 @@
+#!/bin/csh -f
+# ci2rm **************************************
+   if($#argv != 1) then
+echo "Usage: {ci2rm} o/{output}.s" ; exit
+   endif
+source $URO/$BIN/entorno
+ln -s $cwd/d/data.d $UROF/fort.8
+ln -s $cwd/o/$1.s   $UROF/fort.9
+set n="1"
+   while ($n <= 100)
+      if(-e $cwd/o/tabl$n.s) then
+set m=`expr $n + 10`
+ln -s $cwd/o/tabl$n.s $UROF/fort.$m
+      endif
+set n=`expr $n + 1`
+   end
+$URO/$BIN/ci2rm.exe <<EOF
+1                          # nmol
+ # 1 0. 0. 0. 0. 0. 0.
+EOF
+rm -rf $UROF
+exit

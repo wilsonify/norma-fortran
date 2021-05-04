@@ -1,0 +1,87 @@
+
+NORMA normal mode fiting of crystal structures into EM densities using URO and NMA
+----------------------------------------------------------------------------------
+
+Karsten Suhre <mailto:karsten.suhre@igs.cnrs-mrs.fr> 
+
+
+This directory contains :
+
+
+* A minimal subset of the Elastic Network Model code from Yves-Henri Sanejouand 
+  (for a full version and documentation see http://ecole.modelisation.free.fr/modes.html )
+
+    pdbmat.f  
+    diagrtb.f
+    diagstd.f
+    proj_modes_bin.f ( a slightly modified version of YHS's proj_modes.f
+                       that speeds up multiple mode computation by using 
+                       binary rather than ASCI files )
+
+
+* A shell script that calls the Elastic Network Model executables in order
+  to perturbate any PDB structure using a single call 
+
+  usage: 
+  pert_multi_mode.sh file.pdb [-CUTOFF cutoff] [-NRBL nrbl] [-DIAGSTD]  MODE1 DQ1 MODE2 DQ2 ...
+
+
+* A FORTRAN minimization and simulated annealing program, based on the amebsa subroutine
+  from the Numerical Recipes book:
+  (for a documentation see see http://www.library.cornell.edu/nr/bookfpdf/f10-9.pdf )
+
+  NORMA.f
+
+  It's behaviour can be parameterized using a namelist file NORMA.inp
+
+    &PARAM
+     NDIM    =           3,          ! number of modes, staring with mode 7
+     DY      =   100.0000    ,       ! initial amplitude perturbation
+     NITER   =          50,          ! number of iterations per step (round and annealing)
+     TEMPTR  =   100.0000    ,       ! "temperature" for simulated annealing
+     NANNEAL =           3,          ! number of annealing steps
+     NROUND  =           5,          ! number of minimisation rounds
+     LRAND   = F,                    ! randomization of initial perturbations (T/F)
+     TOL     =  1.0000000E-03,       ! amebsa tolerance
+     PB      = 100*0.0000000E+00  ,  ! initial guess
+     MODE    = 7, 8, 9 ,             ! modes to be perturbed
+     SEED    =   42.47110            ! random seed
+    /
+
+
+* A template for testing NORMA (minimization of a quadratic function with superposed
+  oscillations to generate local minima - the correct solution is zero).
+
+  func.sh
+
+  Here is a rough overview of the calling sequence:
+    
+    NORMA --> writes func.in   (MODE1 DQ1 ... MODEn DQn)
+    NORMA --> calls func.sh as a shell subprocess
+              func.sh --> reads func.in
+              func.sh --> calls pert_multi_mode.sh (NMA) --> calls pdbmat & diagrtb/diagstd
+                                                         --> calls proj_mod_bin
+              func.sh --> calls URO
+              func.sh --> writes func.out
+    NORMA --> reads func.out
+
+    
+* A Makefile configured for use with the Gnu g77 FORTRAN compiler
+
+  To test both the correct functioning of NORMA minimization and of the NMA code type:
+
+    make test
+
+  To recompile (note that URO will not be recompiled) :
+
+    make clean; make
+
+
+* Don't forget to set the the PATH variable to the executables (e.g. PATH=`pwd`:$PATH)
+
+
+see also :
+----------
+
+http://www.igs.cnrs-mrs.fr/elnemo/NORMA/
+

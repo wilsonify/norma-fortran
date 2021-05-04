@@ -1,0 +1,8 @@
+&PARAM
+ NDIM    =           1,
+ DY      =    200.0000,
+ NITER   =          50,
+ TEMPTR  =     50.0000,
+ NANNEAL =           0,
+ NROUND  =           1,
+/

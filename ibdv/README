@@ -1,0 +1,68 @@
+
+NORMA normal mode fiting of crystal structures into EM densities using URO and NMA
+----------------------------------------------------------------------------------
+
+Karsten Suhre <mailto:karsten.suhre@igs.cnrs-mrs.fr> , Wed Oct 20 2005
+
+
+This directory contains :
+
+* The IBDV EM density map in NEWEZD format 
+
+  map_odd.ezd
+
+  REF: Coulibaly F, Chevalier C, Gutsche I, Pous J, Navaza J, Bressanelli S, Delmas B, Rey FA., 
+       The birnavirus crystal structure reveals structural relationships among icosahedral viruses.,
+       Cell 2005; 120:761-772.
+
+  NOTE: This dataset has been kindly made available for use within the educational context
+        of NORMA only. This dataset is NOT in the public domain.
+        For further copyright details, please contact :
+
+        Jorge Navaza
+        Laboratoire de Virologie Moléculaire & Structurale
+        UMR 2472 CNRS - 1157 INRA Bât. 14B
+        1 Avenue de la Terrasse
+        91198 Gif-sur-Yvette Cedex
+        France
+        email: jnavaza@vms.cnrs-gif.fr
+        tel: 01 69 82 38 43
+        fax: 01 69 82 43 08
+
+
+* The initial model (as a trimer), prepositioned into the EM map:
+
+  1WCD.reo.pdb
+
+  REF: as for the EM map (see above)
+
+
+* The symmetry file for URO in two formats and the viewing position for O (see URO documentation)
+
+  sym
+  gs.real
+  gs.sym
+  
+
+* A shell script to call URO from NORMA via the script func.sh
+
+  go.URO.minimize
+
+* To setup the case IBDV case, do the following:
+
+  # setup URO and move files to ./d
+  csh $URO/setup
+  mv sym gs.sym gs.real map_odd.ezd 1WCD.reo.pdb ./d
+
+  # test URO by running func.sh by hand (this first run may take a while since
+  # the normal modes will have to be calculated)
+  # Don`t forget to set the PATH to NMA and NORMA !
+  sh ./func.sh
+
+
+
+see also :
+----------
+
+http://www.igs.cnrs-mrs.fr/elnemo/NORMA/
+

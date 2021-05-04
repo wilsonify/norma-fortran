@@ -1,0 +1,13 @@
+&PARAM
+ NDIM    =           3,
+ DY      =   100.0000    ,
+ NITER   =          50,
+ TEMPTR  =   100.0000    ,
+ NANNEAL =           3,
+ NROUND  =           5,
+ LRAND   = F,
+ TOL     =  1.0000000E-03,
+ PB      = 100*0.0000000E+00  ,
+ SEED    =   42.47110    
+/
+

@@ -1,0 +1,10 @@
+#!/bin/csh -f
+# regula *************************************
+   if($#argv != 1) then
+echo "Usage: {regula} o/{fiting-inp}.s" ; exit
+   endif
+source $URO/$BIN/entorno
+ln -s $cwd/o/${1}.s $UROF/fort.1
+$URO/$BIN/regula.exe
+rm -rf $UROF
+exit

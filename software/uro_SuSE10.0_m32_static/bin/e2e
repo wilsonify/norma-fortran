@@ -1,0 +1,16 @@
+#!/bin/csh -f
+# e2e ****************************************
+$URO/$BIN/e2e.exe
+   if(-e d/data.d && -e box.ezd && -e d/emap.d) then
+#
+echo "changing header of box.ezd"
+echo `echo "CELL"` `grep "CELDA" d/data.d | sed -e "s/CELDA//"` >! LisT
+set cell=`cat LisT`
+echo `echo "GRID"` `grep "EXTENT" d/emap.d | sed -e "s/EXTENT//"` >! LisT
+set grid=`cat LisT`
+sed -e "s/CELL.*/CELL/" box.ezd | sed -e "s/CELL/${cell}/" | \
+sed -e "s/GRID.*/GRID/" | sed -e "s/GRID/${grid}/" >! LisT
+mv -f LisT box.ezd
+#
+   endif
+exit

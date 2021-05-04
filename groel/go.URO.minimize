@@ -1,0 +1,198 @@
+#!/bin/sh 
+#FILE:    go.URO.minimize
+#AUTHOR:  Karsten Suhre
+#DATE:    Mon Jun  7 16:02:31 CEST 2004
+#PURPOSE: run URO on a single model in a subdirectory
+#         all computation will be done in a ./RUN.minimize
+#BUGS:    
+#MODIF:   
+
+# the name of the PDB file
+pdb=1aonA.pdb
+
+# the EM map
+map=GroEl.ezd
+
+# global parameters
+NMAX=25      # maximum number of iterations of URO fitting
+MAXRES=400.0 # resolution range
+MINRES=15.0  # resolution range
+
+O=on # set this variable to 'on' to generate O views 
+     # (may be set to 'off' to speed up the minimization a bit,
+     #  but in this case, no final PDB file will be produced - run go.O by hand)
+
+# the NMA perturbed PDB file
+base=`basename $pdb .pdb`
+fic1=./d/$base.NMApert.pdb
+
+# the work directory
+rundir=RUN.minimize
+
+# test the presence of required files
+if [ ! -f $fic1 ] ; then
+  echo "file $fic1 not found"
+  exit 1
+fi
+
+if [ ! -d ./d/. ] ; then
+  echo "run amore_setup first"
+  exit 1
+fi
+
+# make run directory and copy URO files 
+[ -d $rundir ] && rm -r -f $rundir
+mkdir $rundir
+cp $fic1 $rundir
+cd $rundir
+cp -r ../e .
+mkdir i
+mkdir f
+mkdir d
+mkdir o
+
+# print the run parameters
+cat > params <<EOF3
+====================================================
+echo "starting URO job using the following parameters"
+EM-map     = $map
+PDB-file   = $fic1
+NMAX       = $NMAX
+RESOLUTION = $MINRES .. $MAXRES
+====================================================
+EOF3
+cat params
+
+# link the map to data directory
+echo "get the map"
+ln -sf ../../d/$map ./d/emap.d || exit 1
+
+# the following link is used by go.O
+ln -sf ./d/emap.d ./box.ezd || exit 1
+
+# get the symmetry files
+echo "get the symmetry files"
+cp ../d/gs.sym ./d/. || exit 1
+cp ../d/sym ./d/. || exit 1
+cp ../d/symlist . || exit 1
+
+# generate the data.d file
+echo "generate data.d file"
+CELDA=`grep '^CELL' ./d/emap.d | sed 's/CELL *//'`
+cat > ./d/data.d <<EOF1
+ ** URO **
+$CELDA CELDA
+x,y,z * stop
+1                   ; orthogonalising code
+95.    0.           ; % reflections, b-add
+$MAXRES   $MINRES          ; resolution range
+EOF1
+
+# generate dato.i3 file
+cat > ./i/dato.i3 <<EOF2
+job  +*+*+*+*+*+*+*+*+*
+xyz               model type
+1000              nb. trans. to fit (big because of ncs_rms)
+0.                CoM cutoff
+EOF2
+
+# generate the xyz.d file 
+echo "generating xyz.d file"
+echo "FORMAT (12X,A4,14X,3F8.3,6X,F6.2)" > ./d/xyz1.d
+egrep '^ATOM' `basename $fic1`  >> ./d/xyz1.d
+
+
+# check if all files are there and if they are correct
+if [ ! -f ./d/emap.d ] ; then
+  echo "ERROR: no file emap.d"
+  exit 1
+fi
+if [ ! -f ./d/xyz1.d ] ; then
+  echo "ERROR: no file xyz1.d"
+  exit 1
+fi
+if [ ! -f ./d/data.d ] ; then
+  echo "ERROR: no file data.d"
+  exit 1
+fi
+
+# Fourier transform of the EM box:
+echo "Fourier transform of the EM box"
+e/emft  d/emap.d  1 > emft.log
+
+# Molecular scattering factors of each of the search models:
+
+echo "Molecular scattering factors of each of the search models"
+e/scat 1 > scat1.log
+
+# Initial positional variables of the independent molecules:
+
+echo "copying initial positions to local dir"
+cp `basename $fic1` Aa.pdb || exit 1
+
+echo "generating modlist"
+cat > modlist <<EOF
+ # 1 Aa
+EOF
+
+echo "Initial positional variables of the independent molecules"
+e/c2pv f0 
+
+# Prepare the input file for the optimization program:
+e/oic f0 fit # [cycles]
+
+# Note: usually, cycles = number of independent molecules to fit
+#       (see the writeup).
+
+# Run the optimization program FITING:
+echo "fiting"
+e/fiting fit f1 > fit.log
+FUNC=`cat fit.log | grep 'scale, correlation coefficients, r-fact, b-factor. function' | tail -1 | sed 's/.*= *//' | sed 's/\.//'`
+echo "FUNC*1000 = $FUNC"
+
+# iteration
+N=1
+tail -1 o/f$N.s >convergence.txt
+while [ $N -le $NMAX ] ; do
+
+
+         e/oic f$N fit
+         N=`expr $N + 1`
+
+         e/fiting fit f$N > fit.log
+         FUNC1=`cat fit.log | grep 'scale, correlation coefficients, r-fact, b-factor. function' | tail -1 | sed 's/.*= *//' | sed 's/\.//'`
+         echo "FUNC*1000 = $FUNC1"
+
+         # test if convergence was reached
+         NLAST=$N
+         if [ $FUNC1 -ge $FUNC ] ; then
+           N=9999
+         else
+           tail -1 o/f$N.s >>convergence.txt
+           FUNC=$FUNC1
+         fi
+
+done
+
+echo "$FUNC" > ../func.out
+
+# generate final coordinates
+if [ "$O" = "on" ] ; then
+  # Generation of optimized coordinates:
+  echo "Generation of optimized coordinates"
+  e/pv2c f$NLAST
+  
+  # generate a file ono for visual inspection
+  echo "generate a file for ono"
+  ../go.O
+
+  # para recuperar gs.real hacer:
+  # write .gs_real
+  # > gs.real [RETURN]
+  echo "copy initial O view"
+  cp ../d/gs.real .
+
+fi
+
+echo "URO finished, here is the convergence ..."
+cat convergence.txt

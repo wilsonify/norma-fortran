@@ -1,0 +1,332 @@
+#=======================================================================
+echo uro.for
+cat >uro.for <<"ENDOF uro.for"
+c ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+      program uro
+      implicit none
+      integer iecr,ii,ilec,iout,kprt,ma,mc,mi,mr
+      real rr
+      complex cc
+      character aa*4,forme*40,formr*40,zn*1
+      parameter(mi=2000000,mr=3500000,mc=3500000,ma=100000)
+      dimension aa(ma),cc(mc),ii(mi),rr(mr)
+      common/ioprg/ ilec,iecr,kprt,iout,formr,forme,zn
+      ilec=5
+      iecr=6
+      kprt=0
+      iout=9
+      zn='#'
+      formr='(2x,i2,       3f7.1,3f8.4,  1x,4f6.1   )'
+      forme='(1x,a1,i2,    3f7.1,3f8.4,  1x,4f6.1   )'
+c mi=nrt, mc=mt+nrt
+      call amiga(mi,mr,mc,ma,ii,rr,cc,aa)
+      stop
+      end
+c ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+      subroutine lecfos(i1,h,k,l,fo,pho,first,last)
+      implicit none
+      integer h,i1,k,l
+      real dtor,fo,pho,pi,rtod,twopi
+      character card*80,fase*5,forml*80,tipo*4
+      logical first,last
+      common/angkte/ pi,twopi,dtor,rtod
+      save fase,forml,tipo
+c las fases de entrada en grados
+         if(first) then
+      first=.false.
+      rewind(unit=i1)
+10    read(i1,fmt='(a80)') card
+      if(card(1:6).ne.'FORMAT') go to 10
+            if(card(7:8).eq.'-I') then
+      tipo='iobs'
+      forml(1:72)=card(9:80)
+            else
+      tipo='fobs'
+      forml(1:74)=card(7:80)
+            endif
+      read(i1,fmt='(a80)') card
+            if(card(1:5).eq.'PHASE') then
+      fase='phase'
+            else
+      fase='sigma'
+      pho=0.
+      go to 30
+            endif
+         endif
+20    read(i1,fmt='(a80)',end=40) card
+30       if(fase.eq.'phase') then
+      read(card,fmt=forml) h,k,l,fo,pho
+      pho=pho*dtor
+         else
+      read(card,fmt=forml) h,k,l,fo
+         endif
+      if(fo.le.0.) go to 20
+      if(tipo.eq.'iobs') fo=sqrt(fo)
+      return
+40    last=.true.
+      return
+      end
+c ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+      subroutine lecatc(i1,carat,xi,biso,first,last)
+      implicit none
+      integer i,i1,j,nort
+      real a,alpha,b,beta,biso,c,dtor,gamma,pi,rbid1,rf,ro,rtod,twopi,
+     & xi,xo
+      character atnam*4,carat*4,card*80,forml*80,tcar*80,tipo*4
+      logical first,last
+      dimension xi(3),xo(3)
+      common/cell/ a,b,c,alpha,beta,gamma,rbid1(16)
+      common/ortm/ ro(3,3),rf(3,3),nort
+      common/angkte/ pi,twopi,dtor,rtod
+      save forml,tipo
+      carat='    '
+         if(first) then
+      first=.false.
+      rewind(unit=i1)
+10    read(i1,fmt='(a80)') card
+      if(card(1:6).ne.'FORMAT') go to 10
+      forml(1:74)=card(7:80)
+      read(i1,fmt='(a80)') card
+            if(card(1:4).eq.'CELL') then
+      tipo='frac'
+      tcar(1:76)=card(5:80)
+c lecturainterna
+      read(tcar,*) a,b,c,alpha,beta,gamma
+      call celda
+      nort=1
+      call ortho
+            else
+      tipo='orto'
+      go to 30
+            endif
+         endif
+20    read(i1,fmt='(a80)',end=70) card
+30    if(card(1:4).ne.'ATOM') go to 20
+      read(card,fmt=forml) atnam,xi,biso
+c     if(atnam.ne.' CA '
+c    . .and.atnam.ne.' C  '.and.atnam.ne.' N  '.and.atnam.ne.' O  '
+c    . ) go to 20
+      if(atnam(2:2).eq.'H'.or.atnam(2:2).eq.'D'.or.atnam(2:2).eq.'E'.or.
+     . atnam(2:2).eq.'X'.or.atnam(1:1).eq.'H') go to 20
+      carat(1:2)=atnam(1:2)
+         if(tipo.ne.'orto') then
+      do 50 i=1,3
+      xo(i)=0.
+      do 40 j=1,3
+      xo(i)=xo(i)+ro(i,j)*xi(j)
+40    continue
+50    continue
+      do 60 i=1,3
+      xi(i)=xo(i)
+60    continue
+      biso=biso*8*pi**2
+         endif
+      return
+70    last=.true.
+      return
+      end
+c ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+      subroutine lgauss(uat)
+      implicit none
+      integer i,ie,iecr,ilec,iout,j,jf,js,kprt,mgaus,n,ngaus,ntype,uat
+      real ct,emax,et,gauss
+      character card*80,cbid1*1,keyid*4
+      common/ioprg/ ilec,iecr,kprt,iout,cbid1(81)
+      common/ctype/ keyid(300)
+      common/atype/ gauss(30,300),ngaus,ntype
+c los coeficientes estan escritos por pares (a(n),b(n)),
+c correspondientes a la formula, f(s) = sum(n) (a(n)*exp(-b(n)*s**2)).
+c el termino constante (si hay) debe ser el ultimo.
+      ngaus=9
+      do 20 n=1,300
+      do 10 i=1,30
+      gauss(i,n)=0.
+10    continue
+20    continue
+      ntype=0
+30    read(uat,fmt='(a80)',end=50) card
+      ntype=ntype+1
+      keyid(ntype)=card(1:4)
+      do 40 i=1,3
+      js=4*(i-1)+1
+      jf=min(js+3,ngaus)
+      read(uat,*) (gauss(j,ntype),j=js,jf)
+40    continue
+      go to 30
+50    mgaus=(ngaus+1)/2
+      do 70 n=1,ntype
+      ie=1
+      emax=gauss(2,n)
+      do 60 i=1,mgaus
+      if(gauss(2*i,n).le.emax) go to 60
+      ie=i
+      emax=gauss(2*ie,n)
+60    continue
+      if(ie.eq.1) go to 70
+      ct=gauss(1,n)
+      et=gauss(2,n)
+      gauss(1,n)=gauss(2*ie-1,n)
+      gauss(2,n)=gauss(2*ie,n)
+      gauss(2*ie-1,n)=ct
+      gauss(2*ie,n)=et
+70    continue
+      write(iecr,2010) ntype
+      do 80 n=1,ntype
+      keyid(n)(3:4)='  '
+80    continue
+      return
+2010  format(/i5,' form factors available (first two characters used).')
+      end
+c ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+      subroutine abra(lu,ft,ss,nwds)
+      implicit none
+      integer i,ibid1,iecr,ilec,ios,iout,kprt,lgth,lsiz,lu,mul,n,nwds,
+     & nwdsm
+      real idat,odat
+      character cbid1*1,ft*1,fu*80,ss*1,st*7,tcar*80
+      logical first,primo
+      dimension idat(15),odat(15)
+      common/ioprg/ ilec,iecr,kprt,iout,cbid1(81)
+      common/dfftd/ ibid1(4),nwdsm
+      data first/.true./
+      save fu,lgth,mul,primo
+         if(first) then
+      primo=.true.
+       do n=1,80
+      fu(n:n)=' '
+       enddo
+      call getenv('UROF',fu)
+       do n=80,1,-1
+      if(fu(n:n).ne.' ') go to 10
+       enddo
+10    lgth=n+1
+      fu(lgth:lgth)='/'
+      first=.false.
+         endif
+         if(ss.eq.'n') then
+      st='new    '
+         else if(ss.eq.'o') then
+      st='old    '
+         else if(ss.eq.'u') then
+      st='unknown'
+         else if(ss.eq.'s') then
+      st='scratch'
+         endif
+         if(lu.lt.10) then
+      write(tcar,fmt='(a5,i1,2x)') 'fort.',lu
+         else if(lu.lt.100) then
+      write(tcar,fmt='(a5,i2,1x)') 'fort.',lu
+         else
+      write(tcar,fmt='(a5,i3)') 'fort.',lu
+         endif
+      fu(lgth+1:lgth+8)=tcar(1:8)
+         if(ft.eq.'f') then
+      open(unit=lu,file=fu,form='formatted',status=st)
+         else if(ft.eq.'u') then
+      open(unit=lu,file=fu,form='unformatted',status=st)
+         else if(ft.eq.'d') then
+            if(primo) then
+      nwdsm=1000000
+       do i=1,15
+      idat(i)=1000./i
+      odat(i)=0.
+       enddo
+      do 30 mul=1,8
+      lsiz=mul*15
+      open(unit=lu,access='direct',recl=lsiz,status=st,iostat=ios)
+      write(lu,rec=1,err=20) idat
+      read(lu,rec=1,err=20) odat
+       do i=1,15
+      if(idat(i).ne.odat(i)) go to 20
+       enddo
+      go to 40
+20    close(unit=lu,status='delete')
+30    continue
+      go to 901
+40    close(unit=lu,status='delete')
+      primo=.false.
+            endif
+      if(nwds.gt.0)
+     . open(unit=lu,access='direct',recl=mul*nwds,status=st,iostat=ios)
+         endif
+      return
+901   write(iecr,3010)
+      write(iout,3010)
+      stop
+3010  format('stop >> abra << cannot determine d-a record length')
+      end
+c ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+      subroutine cierre(lu,ft)
+      implicit none
+      integer lu
+      character ft*1
+         if(ft.eq.'d') then
+      close(unit=lu,status='delete')
+         else
+      close(unit=lu)
+         endif
+      return
+      end
+c ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+      subroutine setpak
+      implicit none
+      integer hm,hs,ibid1,id,iecr,ilec,iout,km,kprt,ks,lm,ls,maxint,mh,
+     & mk,ml,neq,nh,nk,nl,nm,nts
+      real a,b,c,rbid1,rbid2,xlam
+      character cbid1*1
+      common/ioprg/ ilec,iecr,kprt,iout,cbid1(81)
+      common/cell/ a,b,c,rbid1(19)
+      common/simt/ rbid2(153),ibid1(432),neq,nts
+      common/paco/ hm,km,lm,nh,nk,nl,nm
+      common/paco3/ hs,ks,ls,mh,mk,ml,maxint
+      maxint=(2**30)+(2**30-1)
+      id=maxint/(2*neq+1)
+      xlam=(id/(a*b*c))**(1./3)
+      hm=xlam*a/2-1
+      km=xlam*b/2-1
+      lm=xlam*c/2-1
+      nh=xlam*a
+      nk=xlam*b
+      nl=xlam*c
+      nm=2*neq+1
+      if(kprt.ne.0) write(iecr,2010) 2/xlam
+      id=maxint
+      xlam=(id/(a*b*c))**(1./3)
+      hs=xlam*a/2-1
+      ks=xlam*b/2-1
+      ls=xlam*c/2-1
+      mh=xlam*a
+      mk=xlam*b
+      ml=xlam*c
+      return
+2010  format(/' setpak. maximal resolution allowed =',f10.6)
+      end
+"ENDOF uro.for"
+$COMPILE uro.for $URO/$BIN/esclave.a -o e/uro.exe
+rm -f uro.for
+#=======================================================================
+echo stfing.for
+cat >stfing.for <<"ENDOF stfing.for"
+c ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+      program stfing
+      implicit none
+      integer iecr,ii,ilec,kprt,mc,mi,mr,nd
+      real rr
+      complex cc
+      character card*80
+      parameter(mi=500000,mr=3000000,mc=500000)
+      dimension cc(mc),ii(mi),rr(mr)
+      common/ioprg/ ilec,iecr,kprt
+      ilec=5
+      iecr=6
+      kprt=1
+      read(ilec,fmt='(a80)') card
+         if(card(1:7).eq.'stfing ') then
+      nd=1000
+      call stfndo(nd,mi,mr,mc,ii,rr,cc)
+         endif
+      stop
+      end
+"ENDOF stfing.for"
+$COMPILE stfing.for $URO/$BIN/slave.a -o e/stfing.exe
+rm -f stfing.for
